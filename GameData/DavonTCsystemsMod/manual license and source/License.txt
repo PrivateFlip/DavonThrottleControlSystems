@@ -1,0 +1,4 @@
+License:
+The entirety of the Davon TC systems mod is released under the GNU GENERAL PUBLIC LICENSE Version 3
+
+
