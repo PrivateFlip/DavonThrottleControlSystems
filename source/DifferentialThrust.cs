@@ -222,12 +222,16 @@ namespace PFlipDifferentialThrustMod
 
         //Throttles (GUI)
         float Throttle1 = 0.0f;
+        [KSPField(isPersistant = true, guiActive = false)]
         float Throttleslider1 = 0.0f;
         float Throttle2 = 0.0f;
+        [KSPField(isPersistant = true, guiActive = false)]
         float Throttleslider2 = 0.0f;
         float Throttle3 = 0.0f;
+        [KSPField(isPersistant = true, guiActive = false)]
         float Throttleslider3 = 0.0f;
         float Throttle4 = 0.0f;
+        [KSPField(isPersistant = true, guiActive = false)]
         float Throttleslider4 = 0.0f;
 
         //Controls
