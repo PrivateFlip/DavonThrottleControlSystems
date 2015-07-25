@@ -308,7 +308,7 @@ namespace PFlipDifferentialThrustMod
             {
                 foreach (PartModule pm in p.Modules)
                 {
-                    if (pm.ClassName == "DifferentialThrust")
+                    if (pm.ClassName == "DifferentialThrust" && p.flightID != part.flightID)
                     {
                         DifferentialThrust aDifferentialThrust;
                         aDifferentialThrust = p.Modules.OfType<DifferentialThrust>().FirstOrDefault();
@@ -326,7 +326,7 @@ namespace PFlipDifferentialThrustMod
                 bool added = false;
                 foreach (PartModule pm in p.Modules)
                 {
-                    if (added == false && (pm.ClassName == "ModuleEngines" || pm.ClassName == "MultiModeEngine" || pm.ClassName == "ModuleEnginesFX"))
+                    if (added == false && (pm.ClassName == "ModuleEngines" || pm.ClassName == "MultiModeEngine" || pm.ClassName == "ModuleEnginesFX") )
                     {
                         EngineList.Add(p);
                         added = true;
@@ -1425,11 +1425,11 @@ namespace PFlipDifferentialThrustMod
                 bool partadded = false;
                 foreach (PartModule pm in p.Modules)
                 {
-
+                    
                     if (partadded == false && (pm.ClassName == "ModuleEngines" || pm.ClassName == "ModuleEnginesFX"))
                     {
                         simulatedEngine engine = new simulatedEngine();
-                        engine.part = p;
+                        engine.enginepart = p;
 
                         if (pm.ClassName == "ModuleEngines")
                         {
@@ -1599,7 +1599,7 @@ namespace PFlipDifferentialThrustMod
             //engine selection
             foreach (simulatedEngine simE in simulatedEngineList)
             {
-                if (simE.active && simE.hasEngineModule && simE.DifMod.CenterThrust && !simE.throttleLocked)
+                if (simE.engineactive && simE.hasEngineModule && simE.DifMod.CenterThrust && !simE.throttleLocked)
                 {
                     if ((simE.DifMod.aim > simE.aimlowest || thrustArea == false) && (simE.DifMod.aim < simE.aimhighest || thrustArea == true))
                     {
@@ -1684,12 +1684,12 @@ namespace PFlipDifferentialThrustMod
 //this object functions mostly as an interface for easy (performance) engine access to nessecary variables.
     public class simulatedEngine
     {
-        public Part part;
+        public Part enginepart;
         
         public float measuredThrust;
         public float currentThrottle;
         public float thrustPercentage;
-        public bool active;
+        public bool engineactive;
         public bool throttleLocked;
 
         public bool hasEngineModule = false;
@@ -1712,51 +1712,57 @@ namespace PFlipDifferentialThrustMod
         {
             float distance;
 
+            //print("update" + ModEng.part.name);
+
             if (enginemoduletype == 0)
             {
                 //read all nessecary values
                 measuredThrust = ModEng.finalThrust;
                 currentThrottle = ModEng.currentThrottle;
                 thrustPercentage = ModEng.thrustPercentage;
-                active = (ModEng.EngineIgnited && !ModEng.engineShutdown);
+                engineactive = (ModEng.EngineIgnited && !ModEng.engineShutdown);
                 throttleLocked = ModEng.throttleLocked;
 
                 //establish the average distance of engine to CoM. This is done each physics cycle to account for shifting CoM and possibly altered engine location
                 distance = 0.0f;
                 foreach (Transform tr in ModEng.thrustTransforms)
                 {
-                    distance = distance + (part.vessel.ReferenceTransform.InverseTransformPoint(tr.position)[xax] - CoM[xax]);
+                    distance = distance + (enginepart.vessel.ReferenceTransform.InverseTransformPoint(tr.position)[xax] - CoM[xax]);
                 }
                 distanceX = distance / ModEng.thrustTransforms.Count();
+
+                //print(distanceX);
 
                 distance = 0.0f;
                 foreach (Transform tr in ModEng.thrustTransforms)
                 {
-                    distance = distance + (part.vessel.ReferenceTransform.InverseTransformPoint(tr.position)[yay] - CoM[yay]);
+                    distance = distance + (enginepart.vessel.ReferenceTransform.InverseTransformPoint(tr.position)[yay] - CoM[yay]);
                 }
                 distanceY = distance / ModEng.thrustTransforms.Count();
+
+                //print(distanceY);
             }
             else
             {
-                ModEngFX = DifMod.PartmoduleModuleEnginesFX;
+                if (hasEngineModule) { ModEngFX = DifMod.PartmoduleModuleEnginesFX; }
                 
                 measuredThrust = ModEngFX.finalThrust;
                 currentThrottle = ModEngFX.currentThrottle;
                 thrustPercentage = ModEngFX.thrustPercentage;
-                active = (ModEngFX.EngineIgnited && !ModEngFX.engineShutdown);
+                engineactive = (ModEngFX.EngineIgnited && !ModEngFX.engineShutdown);
                 throttleLocked = ModEngFX.throttleLocked;
                 
                 distance = 0.0f;
                 foreach (Transform tr in ModEngFX.thrustTransforms)
                 {
-                    distance = distance + (part.vessel.ReferenceTransform.InverseTransformPoint(tr.position)[xax] - CoM[xax]);
+                    distance = distance + (enginepart.vessel.ReferenceTransform.InverseTransformPoint(tr.position)[xax] - CoM[xax]);
                 }
                 distanceX = distance / ModEngFX.thrustTransforms.Count();
 
                 distance = 0.0f;
                 foreach (Transform tr in ModEngFX.thrustTransforms)
                 {
-                    distance = distance + (part.vessel.ReferenceTransform.InverseTransformPoint(tr.position)[yay] - CoM[yay]);
+                    distance = distance + (enginepart.vessel.ReferenceTransform.InverseTransformPoint(tr.position)[yay] - CoM[yay]);
                 }
                 distanceY = distance / ModEngFX.thrustTransforms.Count();
             }
