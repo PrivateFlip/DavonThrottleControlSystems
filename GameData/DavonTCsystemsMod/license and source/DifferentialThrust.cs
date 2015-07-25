@@ -9,145 +9,8 @@ using UnityEngine;
 using System.Reflection;
 
 
-namespace PFlipDifferentialThrustMod
+namespace DifferentialThrustMod
 {
-    [KSPAddon(KSPAddon.Startup.Flight, false)]
-    public class DifferentialThrustToolbar : MonoBehaviour
-    {
-        //stock toolbar button
-        private static ApplicationLauncherButton toolBarButton;
-        private static Texture2D toolBarButtonTexture;
-
-        private double lastUpdateToolBarTime = 0.0f;
-
-        public void Awake()
-        {
-            RenderingManager.AddToPostDrawQueue(643, OnDraw);
-        }
-
-        void onDestroy()
-        {
-            if (toolBarButton != null) { removeToolbarButton(); }
-        }
-
-        private void OnDraw()
-        {
-            updateToolBar();
-        }
-
-        private void updateToolBar()
-        {
-            
-            if (HighLogic.LoadedScene != GameScenes.FLIGHT || (lastUpdateToolBarTime + 2) > Planetarium.GetUniversalTime() ||!ApplicationLauncher.Ready) { return; }
-
-            if (toolBarButton == null && hasDifferentialThrustModule()) { addToolbarButton();}
-            if (toolBarButton != null && !hasDifferentialThrustModule()) { removeToolbarButton(); }
-
-            lastUpdateToolBarTime = Planetarium.GetUniversalTime();
-        }
-
-        private void addToolbarButton()
-        {
-            toolBarButtonTexture = GameDatabase.Instance.GetTexture("DavonTCsystemsMod/Textures/TCbutton", false);
-
-            toolBarButton = ApplicationLauncher.Instance.AddModApplication(
-                                onToggleOn,
-                                onToggleOff,
-                                null,
-                                null,
-                                null,
-                                null,
-                                ApplicationLauncher.AppScenes.FLIGHT,
-                                toolBarButtonTexture);
-        }
-
-        private void removeToolbarButton()
-        {
-            ApplicationLauncher.Instance.RemoveModApplication(toolBarButton);
-            toolBarButton = null;
-        }
-
-        void onToggleOn()
-        {
-            if (!toggleOnPrimary())
-            {
-                makePrimary();
-                toggleOnPrimary();
-            }
-        }
-
-        void onToggleOff()
-        {
-            toggleOff();
-        }
-
-        private bool hasDifferentialThrustModule()
-        {
-            foreach (Part p in FlightGlobals.ActiveVessel.parts)
-            {
-                foreach (PartModule pm in p.Modules)
-                {
-                    if (pm.ClassName == "DifferentialThrust")
-                    {
-                        return (true);
-                    }
-                }
-            }
-            return (false);
-        }
-
-        private bool toggleOnPrimary()
-        {
-            foreach (Part p in FlightGlobals.ActiveVessel.parts)
-            {
-                foreach (PartModule pm in p.Modules)
-                {
-                    if (pm.ClassName == "DifferentialThrust")
-                    {
-                        DifferentialThrust aDifferentialThrust;
-                        aDifferentialThrust = p.Modules.OfType<DifferentialThrust>().FirstOrDefault();
-                        if (aDifferentialThrust.isPrimary) { aDifferentialThrust.toggleModuleOn(); return true; }
-                    }
-                }
-            }
-            return (false);
-        }
-
-        private void makePrimary()
-        {
-            foreach (Part p in FlightGlobals.ActiveVessel.parts)
-            {
-                foreach (PartModule pm in p.Modules)
-                {
-                    if (pm.ClassName == "DifferentialThrust")
-                    {
-                        DifferentialThrust aDifferentialThrust;
-                        aDifferentialThrust = p.Modules.OfType<DifferentialThrust>().FirstOrDefault();
-                        aDifferentialThrust.isPrimary = true;
-                        return;
-                    }
-                }
-            }
-        }
-
-        private bool toggleOff()
-        {
-            foreach (Part p in FlightGlobals.ActiveVessel.parts)
-            {
-                foreach (PartModule pm in p.Modules)
-                {
-                    if (pm.ClassName == "DifferentialThrust")
-                    {
-                        DifferentialThrust aDifferentialThrust;
-                        aDifferentialThrust = p.Modules.OfType<DifferentialThrust>().FirstOrDefault();
-                        aDifferentialThrust.toggleModuleOff();
-                    }
-                }
-            }
-            return (false);
-        }
-    }
-
     public class DifferentialThrust : PartModule
     {
         [KSPField(isPersistant = true, guiActive = false)]
@@ -165,14 +28,12 @@ namespace PFlipDifferentialThrustMod
         public bool OnlyDesEng = false;
 
         [KSPField(isPersistant = true, guiActive = false)]
-        public int xax = 0;
-        [KSPField(isPersistant = true, guiActive = false)]
-        public int yay = 2;
-
-        [KSPField(isPersistant = true, guiActive = false)]
         public int CenterThrustDirection = 0;
         [KSPField(isPersistant = true, guiActive = false)]
-        public float adjstr = 10f;
+        private int xax = 0;
+        private int yay = 2;
+        private bool xaxi = true;
+        private bool yayi = false;
 
         private Vector3 CoM;
         private List<simulatedEngine> simulatedEngineList = new List<simulatedEngine>();
@@ -183,6 +44,12 @@ namespace PFlipDifferentialThrustMod
         //private float previousAdjust;
         private float previousCoTX;
         private float previousCoTY;
+
+        [KSPField(isPersistant = false, guiActive = false)]
+        public bool ThrottleSteeringToggle = false;
+        private float input0 = 0f;
+        private float input1 = 0f;
+        private float throttleSteeringTorque = 0f;
 
         [KSPField(isPersistant = true, guiActive = false)]
         public string savedEngCon = "0";
@@ -211,14 +78,17 @@ namespace PFlipDifferentialThrustMod
         [KSPField(isPersistant = true, guiActive = false)]
         public int selEngGridInt = 1;
         [KSPField(isPersistant = true, guiActive = false)]
-        public string Stradjstr = "10";
+        public string strAdjStr = "10";
         [KSPField(isPersistant = true, guiActive = false)]
         public int selOnOffGridInt = 0;
-
+        [KSPField(isPersistant = true, guiActive = false)]
+        public bool boolThrSte = false;
+        [KSPField(isPersistant = true, guiActive = false)]
+        public string strTorque = "10";
 
         //Direction (GUI)
         [KSPField(isPersistant = true, guiActive = false)]
-        int selDirGridInt;
+        int selDirGridInt = 0;
 
         //Throttles (GUI)
         float Throttle1 = 0.0f;
@@ -270,8 +140,8 @@ namespace PFlipDifferentialThrustMod
             checkCommandPodPresent();
             checkEngineLoss();
 
-            if (CenterThrustToggle == true) 
-            { 
+            if (CenterThrustToggle == true)
+            {
                 //adjust();
 
                 centerThrustInSim();
@@ -326,7 +196,7 @@ namespace PFlipDifferentialThrustMod
                 bool added = false;
                 foreach (PartModule pm in p.Modules)
                 {
-                    if (added == false && (pm.ClassName == "ModuleEngines" || pm.ClassName == "MultiModeEngine" || pm.ClassName == "ModuleEnginesFX") )
+                    if (added == false && (pm.ClassName == "ModuleEngines" || pm.ClassName == "MultiModeEngine" || pm.ClassName == "ModuleEnginesFX"))
                     {
                         EngineList.Add(p);
                         added = true;
@@ -384,6 +254,9 @@ namespace PFlipDifferentialThrustMod
             {
                 LoadEngineSettings();
                 CenterThrustToggle = (selOnOffGridInt == 1);
+                ThrottleSteeringToggle = boolThrSte;
+                float.TryParse(strTorque, out throttleSteeringTorque);
+                setDirection(CenterThrustDirection);
                 UpdateCenterThrust();
                 loadedEngineSettings = true;
             }
@@ -473,10 +346,10 @@ namespace PFlipDifferentialThrustMod
             savedEngCon = "1";
             foreach (DifferentialThrustEngineModule dtm in TCEngineList)
             {
-                        //Create SaveId based on position. This allows the central module to save and load settings back to this engine module.
-                        string SaveID = dtm.part.orgPos.ToString();
+                //Create SaveId based on position. This allows the central module to save and load settings back to this engine module.
+                string SaveID = dtm.part.orgPos.ToString();
 
-                        savedEngCon = savedEngCon + ":" + SaveID + ">" + dtm.levelThrust + ">" + dtm.throttleFloatSelect + ">" + dtm.CenterThrustMode + ">" + dtm.aim + ">" + dtm.isolated;
+                savedEngCon = savedEngCon + ":" + SaveID + ">" + dtm.levelThrust + ">" + dtm.throttleFloatSelect + ">" + dtm.CenterThrustMode + ">" + dtm.aim + ">" + dtm.isolated;
             }
             //print(savedEngCon);
         }
@@ -497,7 +370,7 @@ namespace PFlipDifferentialThrustMod
                             if (dtm.part.orgPos.ToString() == sti.Substring(0, SaveIDLen))
                             {
                                 string[] arrData = sti.Split('>');
-                                print(sti);
+                                //print(sti);
 
                                 dtm.levelThrust = (float)Convert.ToDouble(arrData[1]);
                                 dtm.throttleFloatSelect = (float)Convert.ToDouble(arrData[2]);
@@ -917,7 +790,7 @@ namespace PFlipDifferentialThrustMod
 
         public void saveprofile(string profile)
         {
-            string[] data = new string[9];
+            string[] data = new string[11];
 
             SaveEngineSettings();
             data[0] = savedEngCon;
@@ -925,13 +798,14 @@ namespace PFlipDifferentialThrustMod
             data[1] = CenterThrustDirection.ToString();
 
             data[2] = selEngGridInt.ToString();
-            data[3] = Stradjstr;
+            data[3] = strAdjStr;
             data[4] = selOnOffGridInt.ToString();
             data[5] = Throttle1ControlDes;
             data[6] = Throttle2ControlDes;
             data[7] = Throttle3ControlDes;
             data[8] = Throttle4ControlDes;
-
+            data[9] = boolThrSte.ToString();
+            data[10] = strTorque;
 
             System.IO.File.WriteAllLines(GamePath + ProfilesPath + profile, data);
         }
@@ -944,11 +818,11 @@ namespace PFlipDifferentialThrustMod
             LoadEngineSettings();
 
             CenterThrustDirection = Convert.ToInt32(data[1]);
-            setdirection(CenterThrustDirection);
+            setDirection(CenterThrustDirection);
             selDirGridInt = CenterThrustDirection;
 
             selEngGridInt = Convert.ToInt32(data[2]);
-            Stradjstr = data[3];
+            strAdjStr = data[3];
             selOnOffGridInt = Convert.ToInt32(data[4]);
             CenterThrustToggle = (selOnOffGridInt == 1);
             UpdateCenterThrust();
@@ -958,6 +832,10 @@ namespace PFlipDifferentialThrustMod
             Throttle3ControlDes = data[7];
             Throttle4ControlDes = data[8];
 
+            boolThrSte = (data[9] == "True");
+            CenterThrustToggle = boolThrSte;
+            strTorque = data[10];
+            float.TryParse(strTorque, out throttleSteeringTorque);
         }
 
         private void updateProfilesList()
@@ -1027,6 +905,25 @@ namespace PFlipDifferentialThrustMod
                 }
             }
 
+            boolThrSte = GUILayout.Toggle(boolThrSte, "Throttle Steering");
+            if (boolThrSte != ThrottleSteeringToggle)
+            {
+                ThrottleSteeringToggle = boolThrSte;
+            }
+
+            if (boolThrSte)
+            {
+                GUILayout.Label("Torque:", GUILayout.Width(45));
+
+                GUILayout.BeginHorizontal();
+                strTorque = GUILayout.TextField(strTorque, 5, GUILayout.Width(50));
+                GUILayout.Label("kN*m", GUILayout.Width(35));
+                if (GUILayout.Button("set", GUILayout.Width(30), GUILayout.Height(22)))
+                {
+                    float.TryParse(strTorque, out throttleSteeringTorque);
+                }
+                GUILayout.EndHorizontal();
+            }
 
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Direction", GUILayout.Width(100)))
@@ -1099,6 +996,7 @@ namespace PFlipDifferentialThrustMod
                         }
                     }
                 }
+                makeSimulatedEngineList();
             }
             else
             {
@@ -1110,7 +1008,6 @@ namespace PFlipDifferentialThrustMod
                     }
                 }
             }
-            makeSimulatedEngineList();
         }
 
         /// <summary>
@@ -1138,7 +1035,7 @@ namespace PFlipDifferentialThrustMod
             if (CenterThrustDirection != selDirGridInt)
             {
                 CenterThrustDirection = selDirGridInt;
-                setdirection(CenterThrustDirection);
+                setDirection(CenterThrustDirection);
                 closeGUIDconfig();
             }
             if (GUILayout.Button("X", GUILayout.Width(40)))
@@ -1167,34 +1064,45 @@ namespace PFlipDifferentialThrustMod
             RenderingManager.RemoveFromPostDrawQueue(2114, new Callback(drawGUIDconfig));
         }
 
-        public void setdirection(int direction)
+        public void setDirection(int direction)
         {
             switch (direction)
             {
                 case 0:
                     xax = 0;
                     yay = 2;
+                    xaxi = true;
+                    yayi = false;
                     break;
                 case 1:
                     xax = 0;
                     yay = 2;
-
+                    xaxi = false;
+                    yayi = true;
                     break;
                 case 2:
                     xax = 0;
                     yay = 1;
+                    xaxi = true;
+                    yayi = false;
                     break;
                 case 3:
                     xax = 0;
                     yay = 1;
+                    xaxi = false;
+                    yayi = true;
                     break;
                 case 4:
                     xax = 1;
                     yay = 2;
+                    xaxi = false;
+                    yayi = true;
                     break;
                 case 5:
                     xax = 1;
                     yay = 2;
+                    xaxi = true;
+                    yayi = false;
                     break;
             }
         }
@@ -1402,8 +1310,8 @@ namespace PFlipDifferentialThrustMod
         tuned down. If it can't find such an engine it looks for an engine in the overthrust 
         area. It always selects the engine with largest distance to the balance line. 
         A small adjustment is then made to this engine.*/
-        
-        
+
+
         //run each physics cycle
         public void centerThrustInSim()
         {
@@ -1425,7 +1333,7 @@ namespace PFlipDifferentialThrustMod
                 bool partadded = false;
                 foreach (PartModule pm in p.Modules)
                 {
-                    
+
                     if (partadded == false && (pm.ClassName == "ModuleEngines" || pm.ClassName == "ModuleEnginesFX"))
                     {
                         simulatedEngine engine = new simulatedEngine();
@@ -1435,7 +1343,7 @@ namespace PFlipDifferentialThrustMod
                         {
                             engine.enginemoduletype = 0;
                             engine.ModEng = (ModuleEngines)pm;
-              
+
                         }
                         else if (pm.ClassName == "ModuleEnginesFX")
                         {
@@ -1469,14 +1377,24 @@ namespace PFlipDifferentialThrustMod
             {
                 foreach (simulatedEngine simE in simulatedEngineList)
                 {
-                    simE.update(xax, yay, CoM);
+                    //print("c" + xax + " " + yay + " " + xaxi + " " + yayi);
+                    simE.update(xax, xaxi, yay, yayi, CoM);
+                    //print("a" + xax + " " + yay + " " + xaxi + " " + yayi);
                 }
             }
             catch
             {
                 makeSimulatedEngineList();
             }
+            if (ThrottleSteeringToggle)
+            {
+                //print("a" + xax + " " + yay  + " " + xaxi + " " + yayi);
+                input0 = getVesselInput(yay);
+                input1 = getVesselInput(xax);
+                //print("b" + xax + " " + yay + " " + xaxi + " " + yayi);
+            }
         }
+
         private void adjustInSim()
         {
             float CoTX = findCoTInSim(0);
@@ -1502,7 +1420,7 @@ namespace PFlipDifferentialThrustMod
                 if (thrustArea)
                 {
                     EngSelect.DifMod.aim = EngSelect.DifMod.aim - adjustmentSize;
-                    if (EngSelect.DifMod.aim <= EngSelect.aimlowest) { EngSelect.DifMod.aim = EngSelect.aimlowest; } 
+                    if (EngSelect.DifMod.aim <= EngSelect.aimlowest) { EngSelect.DifMod.aim = EngSelect.aimlowest; }
                 }
                 else
                 {
@@ -1520,7 +1438,8 @@ namespace PFlipDifferentialThrustMod
             //Datum lies 1000 meter before Com
 
             bool skip;
-            float distance;
+            float distance = 0f;
+            float input = 0f;
             float simulationfactor;
             float SumMoments = 0f;
             float SumThrusts = 0f;
@@ -1531,10 +1450,12 @@ namespace PFlipDifferentialThrustMod
                 if (direction == 0)
                 {
                     distance = simE.distanceX;
+                    input = input0;
                 }
                 else
                 {
                     distance = simE.distanceY;
+                    input = input1;
                 }
 
                 skip = false;
@@ -1542,10 +1463,11 @@ namespace PFlipDifferentialThrustMod
                 {
                     if (simE.DifMod.CenterThrustMode == "ignore") { skip = true; }
 
-                    //don't divide by zero
+
                     if (simE.DifMod.CenterThrust)
                     {
                         simulationfactor = (simE.DifMod.aim / simE.thrustPercentage);
+                        //don't divide by zero
                         if (simE.thrustPercentage <= 0)
                         {
                             simulationfactor = 1;
@@ -1561,13 +1483,22 @@ namespace PFlipDifferentialThrustMod
                 {
                     simulationfactor = 1;
                 }
-                
+
                 if (skip == false)
                 {
                     SumMoments = SumMoments + ((distance + 1000) * simE.measuredThrust * simulationfactor);
                     SumThrusts = SumThrusts + (simE.measuredThrust * simulationfactor);
                 }
             }
+
+            if (ThrottleSteeringToggle)
+            {
+                if (input > 0) 
+                { SumMoments = SumMoments + ((1 + 1000) * input * throttleSteeringTorque); }
+                if (input < 0) { SumMoments = SumMoments + ((-1 + 1000) * -1 * input * throttleSteeringTorque); }
+                SumThrusts = SumThrusts + (Math.Abs(input) * throttleSteeringTorque);
+            }
+
             if (SumThrusts == 0) { return 0; }
             return SumMoments / SumThrusts - 1000;
         }
@@ -1656,18 +1587,34 @@ namespace PFlipDifferentialThrustMod
             float disCurr = (float)Math.Sqrt(Math.Pow(currentCoTX, 2.0) + Math.Pow(currentCoTY, 2.0));
             float disBetw = (float)Math.Sqrt(Math.Pow(previousCoTX - currentCoTX, 2.0) + Math.Pow(previousCoTY - currentCoTY, 2.0));
 
-                if (adjustmentSize > 0.1 && (disBetw > 0.2 * disPrev /*|| disCurr < 0.75 * disPrev*/))
-                {
-                    adjustmentSize = adjustmentSize / 2f;
-                    if (adjustmentSize < 0.1) {adjustmentSize = 0.1f;}
-                    //print("down " + adjustmentSize);
-                }
-                if (adjustmentSize < 10 && (disBetw < 0.1 * disPrev /*&& disCurr > 0.75 * disPrev*/))
-                {
-                    adjustmentSize = adjustmentSize * 1.5f;
-                    if (adjustmentSize > 10) { adjustmentSize = 10f;}
-                    //print("--up " + adjustmentSize); 
-                }
+            if (adjustmentSize > 0.1 && (disBetw > 0.2 * disPrev /*|| disCurr < 0.75 * disPrev*/))
+            {
+                adjustmentSize = adjustmentSize / 2f;
+                if (adjustmentSize < 0.1) { adjustmentSize = 0.1f; }
+                //print("down " + adjustmentSize);
+            }
+            if (adjustmentSize < 10 && (disBetw < 0.1 * disPrev /*&& disCurr > 0.75 * disPrev*/))
+            {
+                adjustmentSize = adjustmentSize * 1.5f;
+                if (adjustmentSize > 10) { adjustmentSize = 10f; }
+                //print("--up " + adjustmentSize); 
+            }
+        }
+
+        private float getVesselInput(int direction)
+        {
+            //setDirection
+            switch(direction)
+            {
+                case 0:
+                    return (vessel.ctrlState.pitch);
+                case 1:
+                    return (vessel.ctrlState.roll);
+                case 2:
+                    return (vessel.ctrlState.yaw);
+                default:
+                    return (0f);
+            }
         }
 
         //
@@ -1676,478 +1623,4 @@ namespace PFlipDifferentialThrustMod
         //
     }
 
-
-
-
-
-
-//this object functions mostly as an interface for easy (performance) engine access to nessecary variables.
-    public class simulatedEngine
-    {
-        public Part enginepart;
-        
-        public float measuredThrust;
-        public float currentThrottle;
-        public float thrustPercentage;
-        public bool engineactive;
-        public bool throttleLocked;
-
-        public bool hasEngineModule = false;
-        public DifferentialThrustEngineModule DifMod;
-
-        public int enginemoduletype = 0;
-        public ModuleEngines ModEng;
-        public MultiModeEngine MultiMod;
-        public ModuleEnginesFX ModEngFX;
-
-        public float aimlowest = 0;
-        public float aimhighest = 100;
-
-        public float distanceX;
-        public float distanceY;
-
-
-        //update simulated engine with new values for this physics cycle
-        public void update(int xax, int yay, Vector3 CoM)
-        {
-            float distance;
-
-            //print("update" + ModEng.part.name);
-
-            if (enginemoduletype == 0)
-            {
-                //read all nessecary values
-                measuredThrust = ModEng.finalThrust;
-                currentThrottle = ModEng.currentThrottle;
-                thrustPercentage = ModEng.thrustPercentage;
-                engineactive = (ModEng.EngineIgnited && !ModEng.engineShutdown);
-                throttleLocked = ModEng.throttleLocked;
-
-                //establish the average distance of engine to CoM. This is done each physics cycle to account for shifting CoM and possibly altered engine location
-                distance = 0.0f;
-                foreach (Transform tr in ModEng.thrustTransforms)
-                {
-                    distance = distance + (enginepart.vessel.ReferenceTransform.InverseTransformPoint(tr.position)[xax] - CoM[xax]);
-                }
-                distanceX = distance / ModEng.thrustTransforms.Count();
-
-                //print(distanceX);
-
-                distance = 0.0f;
-                foreach (Transform tr in ModEng.thrustTransforms)
-                {
-                    distance = distance + (enginepart.vessel.ReferenceTransform.InverseTransformPoint(tr.position)[yay] - CoM[yay]);
-                }
-                distanceY = distance / ModEng.thrustTransforms.Count();
-
-                //print(distanceY);
-            }
-            else
-            {
-                if (hasEngineModule) { ModEngFX = DifMod.PartmoduleModuleEnginesFX; }
-                
-                measuredThrust = ModEngFX.finalThrust;
-                currentThrottle = ModEngFX.currentThrottle;
-                thrustPercentage = ModEngFX.thrustPercentage;
-                engineactive = (ModEngFX.EngineIgnited && !ModEngFX.engineShutdown);
-                throttleLocked = ModEngFX.throttleLocked;
-                
-                distance = 0.0f;
-                foreach (Transform tr in ModEngFX.thrustTransforms)
-                {
-                    distance = distance + (enginepart.vessel.ReferenceTransform.InverseTransformPoint(tr.position)[xax] - CoM[xax]);
-                }
-                distanceX = distance / ModEngFX.thrustTransforms.Count();
-
-                distance = 0.0f;
-                foreach (Transform tr in ModEngFX.thrustTransforms)
-                {
-                    distance = distance + (enginepart.vessel.ReferenceTransform.InverseTransformPoint(tr.position)[yay] - CoM[yay]);
-                }
-                distanceY = distance / ModEngFX.thrustTransforms.Count();
-            }
-        }
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    public class DifferentialThrustEngineModule : PartModule
-    {
-        private bool booted = false;
-        public int enginemoduletype = 0;
-
-        public ModuleEngines PartmoduleModuleEngines;
-        public MultiModeEngine PartmoduleMultiModeEngine;
-        public ModuleEnginesFX PartmoduleModuleEnginesFX;
-
-        [KSPField(guiName = "Level Thrust", isPersistant = false, guiActive = true, guiActiveEditor = true)]
-        [UI_FloatRange(stepIncrement = 1f, maxValue = 100f, minValue = 0f)]
-        public float levelThrust = 100;
-
-        [KSPField(guiName = "Throttle", isPersistant = false, guiActive = true, guiActiveEditor = true)]
-        [UI_FloatRange(stepIncrement = 1f, maxValue = 4f, minValue = 0f)]
-        public float throttleFloatSelect;
-        public int throttleSelect;
-        public float THRAIM = 0;
-
-        public float throttleSvalue;
-
-        //[KSPField(guiName = "Center Thrust", isPersistant = false, guiActive = true, guiActiveEditor = true)]
-        public string CenterThrustMode = "available";
-        public bool CenterThrust = false;
-
-        [KSPField(isPersistant = false, guiActive = false, guiName = "CoT calc", guiUnits = "")]
-        [UI_Toggle(disabledText = "Include", enabledText = "Exclude")]
-        public bool CoTcalc = true;
-
-
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Aim", guiUnits = "")]
-        [UI_FloatRange(stepIncrement = 0.001f, maxValue = 100f, minValue = 0f)]
-        public float aim = 100;
-
-        [KSPField(isPersistant = false, guiActive = true, guiName = "net", guiUnits = "")]
-        [UI_Toggle(disabledText = "Connected", enabledText = "Isolated")]
-        public bool isolated = false;
-
-        public bool StoredOuseEngineResponseTime;
-        public float StoredOengineAccelerationSpeed;
-        public float StoredOengineDecelerationSpeed;
-
-        [KSPEvent(name = "transferToAllEngineOfType", isDefault = false, guiActive = true, guiName = "Center thrust: available")]
-        public void CycleCenterThrustMode()
-        {
-            if (CenterThrustMode == "available")
-                CenterThrustMode = "designated";
-            else if (CenterThrustMode == "designated")
-                CenterThrustMode = "ignore";
-            else if (CenterThrustMode == "ignore")
-                CenterThrustMode = "available";
-            else
-                CenterThrustMode = "available";
-
-            Events["CycleCenterThrustMode"].guiName = "Center thrust: " + CenterThrustMode;
-        }
-
-        //Adjust engines every cycle. Purposfull OnUpdate instead of OnFixedUpdate.
-        public override void OnUpdate()
-        {
-            if (booted == false)
-            {
-                boot();
-                return;
-            }
-            
-            if (enginemoduletype == 0)
-            {
-                if (PartmoduleModuleEngines.throttleLocked == true)
-                {
-                    return;
-                }
-            }
-            else
-            {
-                if (PartmoduleModuleEnginesFX.throttleLocked == true)
-                {
-                    return;
-                }
-            }
-
-            if (enginemoduletype == 2)
-            {
-                if (PartmoduleModuleEnginesFX.engineID != PartmoduleMultiModeEngine.mode)
-                {
-                    PartmoduleModuleEnginesFX.useEngineResponseTime = StoredOuseEngineResponseTime;
-                    PartmoduleModuleEnginesFX.engineAccelerationSpeed = StoredOengineAccelerationSpeed;
-                    PartmoduleModuleEnginesFX.engineDecelerationSpeed = StoredOengineDecelerationSpeed;
-                    booted = false;
-                    return;
-                }
-            }
-
-            if (enginemoduletype == 0)
-            {
-                if (!PartmoduleModuleEngines.EngineIgnited || PartmoduleModuleEngines.engineShutdown)
-                {
-                    PartmoduleModuleEngines.currentThrottle = 0;
-                    return;
-                }
-            }
-            else
-            {
-                if (!PartmoduleModuleEnginesFX.EngineIgnited || PartmoduleModuleEnginesFX.engineShutdown)
-                {
-                    PartmoduleModuleEnginesFX.currentThrottle = 0;
-                    return;
-                }
-            }
-
-
-
-
-            //set to correct throttle
-            throttleSelect = (int)Math.Round(throttleFloatSelect, 0);
-
-
-            //retrieve correct throttle value based on selected throttle
-            if (throttleSelect == 0)
-            {
-                throttleSvalue = vessel.ctrlState.mainThrottle;
-            }
-            else
-            {
-                throttleSvalue = THRAIM / 100;
-            }
-
-            //if center thrust is enabled for this engine, set it to the desired aimpoint
-            if (CenterThrust == true)
-            {
-                if (enginemoduletype == 0)
-                {
-                    PartmoduleModuleEngines.thrustPercentage = aim;
-                }
-                else
-                {
-                    PartmoduleModuleEnginesFX.thrustPercentage = aim;
-                }
-                Fields["aim"].guiActive = true;
-
-                levelThrust = 100f;
-                Fields["levelThrust"].guiActive = false;
-            }
-            else
-            {
-                Fields["aim"].guiActive = false;
-
-                Fields["levelThrust"].guiActive = true;
-            }
-
-
-            
-            float thrustperc = 100;
-            if (enginemoduletype == 0)
-            {
-                thrustperc = PartmoduleModuleEngines.thrustPercentage;
-            }
-            else
-            {
-                thrustperc = PartmoduleModuleEnginesFX.thrustPercentage;
-            }
-
-            if ((levelThrust / 100) / (throttleSvalue * (thrustperc / 100)) < 1)
-            {
-                setThrottle(levelThrust / 100);
-            }
-            else
-            {
-                setThrottle(throttleSvalue * (thrustperc / 100));
-            }
-        }
-
-
-        private void setThrottle(float Throttle)
-        {
-            //PartmoduleModuleEngines.currentThrottle = Throttle;
-
-
-            if (enginemoduletype == 0)
-            {
-                //With thanks to ZRM, maker of Kerbcom Avionics, and the help of the code of the Throttle Steering mod made by ruffus.
-                if (StoredOuseEngineResponseTime && !CenterThrust)
-                {
-                    if (PartmoduleModuleEngines.currentThrottle > Throttle)
-                        PartmoduleModuleEngines.currentThrottle = Mathf.Lerp(PartmoduleModuleEngines.currentThrottle, Throttle, StoredOengineDecelerationSpeed * Time.deltaTime);
-                    else
-                        PartmoduleModuleEngines.currentThrottle = Mathf.Lerp(PartmoduleModuleEngines.currentThrottle, Throttle, StoredOengineAccelerationSpeed * Time.deltaTime);
-                }
-                else
-                {
-                    PartmoduleModuleEngines.currentThrottle = Throttle;
-                }
-            }
-            else
-            {
-                //With thanks to ZRM, maker of Kerbcom Avionics, and the help of the code of the Throttle Steering mod made by ruffus.
-                if (StoredOuseEngineResponseTime && !CenterThrust)
-                {
-                    if (PartmoduleModuleEnginesFX.currentThrottle > Throttle)
-                        PartmoduleModuleEnginesFX.currentThrottle = Mathf.Lerp(PartmoduleModuleEnginesFX.currentThrottle, Throttle, StoredOengineDecelerationSpeed * Time.deltaTime);
-                    else
-                        PartmoduleModuleEnginesFX.currentThrottle = Mathf.Lerp(PartmoduleModuleEnginesFX.currentThrottle, Throttle, StoredOengineAccelerationSpeed * Time.deltaTime);
-                }
-                else
-                {
-                    PartmoduleModuleEnginesFX.currentThrottle = Throttle;
-                }
-            }
-        }
-
-        //first startup boot sequence
-        private void boot()
-        {
-            //print("booting");
-
-            //Euid = (int)part.uid;
-            enginemoduletype = 0;
-            foreach (PartModule pm in part.Modules)
-            {
-                if (pm.ClassName == "MultiModeEngine")
-                {
-                    enginemoduletype = 2;
-                    PartmoduleMultiModeEngine = (MultiModeEngine)pm;
-                    ChooseMultiModeEngine();
-
-                    //store original values before engine control takeover
-                    StoredOuseEngineResponseTime = PartmoduleModuleEnginesFX.useEngineResponseTime;
-                    StoredOengineAccelerationSpeed = PartmoduleModuleEnginesFX.engineAccelerationSpeed;
-                    StoredOengineDecelerationSpeed = PartmoduleModuleEnginesFX.engineDecelerationSpeed;
-
-                    //This settings must be set to true to be able to control engines with currentThrottle. 
-                    //Found this with the help of the code of the Throttle Steering mod made by ruffus. 
-                    PartmoduleModuleEnginesFX.useEngineResponseTime = true;
-
-                    //This eliminates the influence of the main throttle on engines
-                    PartmoduleModuleEnginesFX.engineAccelerationSpeed = 0.0f;
-                    PartmoduleModuleEnginesFX.engineDecelerationSpeed = 0.0f;
-
-                    //set aim to chosen limit thrust
-                    aim = PartmoduleModuleEnginesFX.thrustPercentage;
-                }
-            }
-            if (enginemoduletype != 2)
-            {
-                foreach (PartModule pm in part.Modules)
-                {
-                    if (pm.ClassName == "ModuleEngines")
-                    {
-                        enginemoduletype = 0;
-                        PartmoduleModuleEngines = (ModuleEngines)pm;
-
-                        //store original values before engine control takeover
-                        StoredOuseEngineResponseTime = PartmoduleModuleEngines.useEngineResponseTime;
-                        StoredOengineAccelerationSpeed = PartmoduleModuleEngines.engineAccelerationSpeed;
-                        StoredOengineDecelerationSpeed = PartmoduleModuleEngines.engineDecelerationSpeed;
-
-                        //This settings must be set to true to be able to control engines with currentThrottle. 
-                        //Found this with the help of the code of the Throttle Steering mod made by ruffus. 
-                        PartmoduleModuleEngines.useEngineResponseTime = true;
-
-                        //This eliminates the influence of the main throttle on engines
-                        PartmoduleModuleEngines.engineAccelerationSpeed = 0.0f;
-                        PartmoduleModuleEngines.engineDecelerationSpeed = 0.0f;
-
-                        //set aim to chosen limit thrust
-                        aim = PartmoduleModuleEngines.thrustPercentage;
-
-                    }
-                    if (pm.ClassName == "ModuleEnginesFX")
-                    {
-                        enginemoduletype = 1;
-                        PartmoduleModuleEnginesFX = (ModuleEnginesFX)pm;
-
-                        //store original values before engine control takeover
-                        StoredOuseEngineResponseTime = PartmoduleModuleEnginesFX.useEngineResponseTime;
-                        StoredOengineAccelerationSpeed = PartmoduleModuleEnginesFX.engineAccelerationSpeed;
-                        StoredOengineDecelerationSpeed = PartmoduleModuleEnginesFX.engineDecelerationSpeed;
-
-                        //This settings must be set to true to be able to control engines with currentThrottle. 
-                        //Found this with the help of the code of the Throttle Steering mod made by ruffus. 
-                        PartmoduleModuleEnginesFX.useEngineResponseTime = true;
-
-                        //This eliminates the influence of the main throttle on engines
-                        PartmoduleModuleEnginesFX.engineAccelerationSpeed = 0.0f;
-                        PartmoduleModuleEnginesFX.engineDecelerationSpeed = 0.0f;
-
-                        //set aim to chosen limit thrust
-                        aim = PartmoduleModuleEnginesFX.thrustPercentage;
-                    }
-                }
-            }
-
-            Events["transferToAllEngineOfType"].guiName = "Sync all " + part.partInfo.name;
-
-            booted = true;//boot completed
-        }
-
-        private void ChooseMultiModeEngine()
-        {
-            foreach (PartModule pm in part.Modules)
-            {
-                if (pm.ClassName == "ModuleEnginesFX")
-                {
-                    ModuleEnginesFX cModuleEnginesFX = (ModuleEnginesFX)pm;
-                    if (cModuleEnginesFX.engineID == PartmoduleMultiModeEngine.mode)
-                    {
-                        PartmoduleModuleEnginesFX = (ModuleEnginesFX)pm;
-                    }
-                }
-            }
-        }
-
-        [KSPEvent(name = "transferToAllEngineOfType", isDefault = false, guiActive = true, guiName = "Sync all enginetype")]
-        public void transferToAllEngineOfType()
-        {
-            foreach (Part p in vessel.parts)
-            {
-
-                if (p.partInfo.name == part.partInfo.name)
-                {
-                    foreach (PartModule pm in p.Modules)
-                    {
-                        if (pm.ClassName == "DifferentialThrustEngineModule")
-                        {
-                            DifferentialThrustEngineModule aDifferentialThrustEngineModule;
-                            aDifferentialThrustEngineModule = p.Modules.OfType<DifferentialThrustEngineModule>().FirstOrDefault();
-
-                            if (aDifferentialThrustEngineModule.isolated == false)
-                            {
-                                aDifferentialThrustEngineModule.levelThrust = levelThrust;
-                                aDifferentialThrustEngineModule.throttleFloatSelect = throttleFloatSelect;
-                                aDifferentialThrustEngineModule.CenterThrustMode = CenterThrustMode;
-                                aDifferentialThrustEngineModule.Events["CycleCenterThrustMode"].guiName = "Center thrust: " + aDifferentialThrustEngineModule.CenterThrustMode;
-                                aDifferentialThrustEngineModule.aim = aim;
-                                aDifferentialThrustEngineModule.isolated = isolated;
-
-                                foreach (PartModule pmt in p.Modules)
-                                {
-                                    if (pmt.ClassName == "ModuleEngines")
-                                    {
-                                        ModuleEngines aModuleEngines;
-                                        aModuleEngines = (ModuleEngines)pmt;
-
-                                        aModuleEngines.thrustPercentage = PartmoduleModuleEngines.thrustPercentage;
-                                    }
-                                    if (pmt.ClassName == "ModuleEnginesFX")
-                                    {
-                                        ModuleEnginesFX aModuleEnginesFX;
-                                        aModuleEnginesFX = (ModuleEnginesFX)pmt;
-
-                                        aModuleEnginesFX.thrustPercentage = PartmoduleModuleEnginesFX.thrustPercentage;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
-
-

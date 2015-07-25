@@ -28,14 +28,12 @@ namespace DifferentialThrustMod
         public bool OnlyDesEng = false;
 
         [KSPField(isPersistant = true, guiActive = false)]
-        public int xax = 0;
-        [KSPField(isPersistant = true, guiActive = false)]
-        public int yay = 2;
-
-        [KSPField(isPersistant = true, guiActive = false)]
         public int CenterThrustDirection = 0;
         [KSPField(isPersistant = true, guiActive = false)]
-        public float adjstr = 10f;
+        private int xax = 0;
+        private int yay = 2;
+        private bool xaxi = true;
+        private bool yayi = false;
 
         private Vector3 CoM;
         private List<simulatedEngine> simulatedEngineList = new List<simulatedEngine>();
@@ -46,6 +44,12 @@ namespace DifferentialThrustMod
         //private float previousAdjust;
         private float previousCoTX;
         private float previousCoTY;
+
+        [KSPField(isPersistant = false, guiActive = false)]
+        public bool ThrottleSteeringToggle = false;
+        private float input0 = 0f;
+        private float input1 = 0f;
+        private float throttleSteeringTorque = 0f;
 
         [KSPField(isPersistant = true, guiActive = false)]
         public string savedEngCon = "0";
@@ -74,14 +78,17 @@ namespace DifferentialThrustMod
         [KSPField(isPersistant = true, guiActive = false)]
         public int selEngGridInt = 1;
         [KSPField(isPersistant = true, guiActive = false)]
-        public string Stradjstr = "10";
+        public string strAdjStr = "10";
         [KSPField(isPersistant = true, guiActive = false)]
         public int selOnOffGridInt = 0;
-
+        [KSPField(isPersistant = true, guiActive = false)]
+        public bool boolThrSte = false;
+        [KSPField(isPersistant = true, guiActive = false)]
+        public string strTorque = "10";
 
         //Direction (GUI)
         [KSPField(isPersistant = true, guiActive = false)]
-        int selDirGridInt;
+        int selDirGridInt = 0;
 
         //Throttles (GUI)
         float Throttle1 = 0.0f;
@@ -247,6 +254,9 @@ namespace DifferentialThrustMod
             {
                 LoadEngineSettings();
                 CenterThrustToggle = (selOnOffGridInt == 1);
+                ThrottleSteeringToggle = boolThrSte;
+                float.TryParse(strTorque, out throttleSteeringTorque);
+                setDirection(CenterThrustDirection);
                 UpdateCenterThrust();
                 loadedEngineSettings = true;
             }
@@ -360,7 +370,7 @@ namespace DifferentialThrustMod
                             if (dtm.part.orgPos.ToString() == sti.Substring(0, SaveIDLen))
                             {
                                 string[] arrData = sti.Split('>');
-                                print(sti);
+                                //print(sti);
 
                                 dtm.levelThrust = (float)Convert.ToDouble(arrData[1]);
                                 dtm.throttleFloatSelect = (float)Convert.ToDouble(arrData[2]);
@@ -780,7 +790,7 @@ namespace DifferentialThrustMod
 
         public void saveprofile(string profile)
         {
-            string[] data = new string[9];
+            string[] data = new string[11];
 
             SaveEngineSettings();
             data[0] = savedEngCon;
@@ -788,13 +798,14 @@ namespace DifferentialThrustMod
             data[1] = CenterThrustDirection.ToString();
 
             data[2] = selEngGridInt.ToString();
-            data[3] = Stradjstr;
+            data[3] = strAdjStr;
             data[4] = selOnOffGridInt.ToString();
             data[5] = Throttle1ControlDes;
             data[6] = Throttle2ControlDes;
             data[7] = Throttle3ControlDes;
             data[8] = Throttle4ControlDes;
-
+            data[9] = boolThrSte.ToString();
+            data[10] = strTorque;
 
             System.IO.File.WriteAllLines(GamePath + ProfilesPath + profile, data);
         }
@@ -807,11 +818,11 @@ namespace DifferentialThrustMod
             LoadEngineSettings();
 
             CenterThrustDirection = Convert.ToInt32(data[1]);
-            setdirection(CenterThrustDirection);
+            setDirection(CenterThrustDirection);
             selDirGridInt = CenterThrustDirection;
 
             selEngGridInt = Convert.ToInt32(data[2]);
-            Stradjstr = data[3];
+            strAdjStr = data[3];
             selOnOffGridInt = Convert.ToInt32(data[4]);
             CenterThrustToggle = (selOnOffGridInt == 1);
             UpdateCenterThrust();
@@ -821,6 +832,10 @@ namespace DifferentialThrustMod
             Throttle3ControlDes = data[7];
             Throttle4ControlDes = data[8];
 
+            boolThrSte = (data[9] == "True");
+            CenterThrustToggle = boolThrSte;
+            strTorque = data[10];
+            float.TryParse(strTorque, out throttleSteeringTorque);
         }
 
         private void updateProfilesList()
@@ -890,6 +905,25 @@ namespace DifferentialThrustMod
                 }
             }
 
+            boolThrSte = GUILayout.Toggle(boolThrSte, "Throttle Steering");
+            if (boolThrSte != ThrottleSteeringToggle)
+            {
+                ThrottleSteeringToggle = boolThrSte;
+            }
+
+            if (boolThrSte)
+            {
+                GUILayout.Label("Torque:", GUILayout.Width(45));
+
+                GUILayout.BeginHorizontal();
+                strTorque = GUILayout.TextField(strTorque, 5, GUILayout.Width(50));
+                GUILayout.Label("kN*m", GUILayout.Width(35));
+                if (GUILayout.Button("set", GUILayout.Width(30), GUILayout.Height(22)))
+                {
+                    float.TryParse(strTorque, out throttleSteeringTorque);
+                }
+                GUILayout.EndHorizontal();
+            }
 
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Direction", GUILayout.Width(100)))
@@ -962,6 +996,7 @@ namespace DifferentialThrustMod
                         }
                     }
                 }
+                makeSimulatedEngineList();
             }
             else
             {
@@ -973,7 +1008,6 @@ namespace DifferentialThrustMod
                     }
                 }
             }
-            makeSimulatedEngineList();
         }
 
         /// <summary>
@@ -1001,7 +1035,7 @@ namespace DifferentialThrustMod
             if (CenterThrustDirection != selDirGridInt)
             {
                 CenterThrustDirection = selDirGridInt;
-                setdirection(CenterThrustDirection);
+                setDirection(CenterThrustDirection);
                 closeGUIDconfig();
             }
             if (GUILayout.Button("X", GUILayout.Width(40)))
@@ -1030,34 +1064,45 @@ namespace DifferentialThrustMod
             RenderingManager.RemoveFromPostDrawQueue(2114, new Callback(drawGUIDconfig));
         }
 
-        public void setdirection(int direction)
+        public void setDirection(int direction)
         {
             switch (direction)
             {
                 case 0:
                     xax = 0;
                     yay = 2;
+                    xaxi = true;
+                    yayi = false;
                     break;
                 case 1:
                     xax = 0;
                     yay = 2;
-
+                    xaxi = false;
+                    yayi = true;
                     break;
                 case 2:
                     xax = 0;
                     yay = 1;
+                    xaxi = true;
+                    yayi = false;
                     break;
                 case 3:
                     xax = 0;
                     yay = 1;
+                    xaxi = false;
+                    yayi = true;
                     break;
                 case 4:
                     xax = 1;
                     yay = 2;
+                    xaxi = false;
+                    yayi = true;
                     break;
                 case 5:
                     xax = 1;
                     yay = 2;
+                    xaxi = true;
+                    yayi = false;
                     break;
             }
         }
@@ -1332,14 +1377,24 @@ namespace DifferentialThrustMod
             {
                 foreach (simulatedEngine simE in simulatedEngineList)
                 {
-                    //simE.update(xax, yay, CoM);
+                    //print("c" + xax + " " + yay + " " + xaxi + " " + yayi);
+                    simE.update(xax, xaxi, yay, yayi, CoM);
+                    //print("a" + xax + " " + yay + " " + xaxi + " " + yayi);
                 }
             }
             catch
             {
                 makeSimulatedEngineList();
             }
+            if (ThrottleSteeringToggle)
+            {
+                //print("a" + xax + " " + yay  + " " + xaxi + " " + yayi);
+                input0 = getVesselInput(yay);
+                input1 = getVesselInput(xax);
+                //print("b" + xax + " " + yay + " " + xaxi + " " + yayi);
+            }
         }
+
         private void adjustInSim()
         {
             float CoTX = findCoTInSim(0);
@@ -1383,7 +1438,8 @@ namespace DifferentialThrustMod
             //Datum lies 1000 meter before Com
 
             bool skip;
-            float distance;
+            float distance = 0f;
+            float input = 0f;
             float simulationfactor;
             float SumMoments = 0f;
             float SumThrusts = 0f;
@@ -1394,10 +1450,12 @@ namespace DifferentialThrustMod
                 if (direction == 0)
                 {
                     distance = simE.distanceX;
+                    input = input0;
                 }
                 else
                 {
                     distance = simE.distanceY;
+                    input = input1;
                 }
 
                 skip = false;
@@ -1405,10 +1463,11 @@ namespace DifferentialThrustMod
                 {
                     if (simE.DifMod.CenterThrustMode == "ignore") { skip = true; }
 
-                    //don't divide by zero
+
                     if (simE.DifMod.CenterThrust)
                     {
                         simulationfactor = (simE.DifMod.aim / simE.thrustPercentage);
+                        //don't divide by zero
                         if (simE.thrustPercentage <= 0)
                         {
                             simulationfactor = 1;
@@ -1431,6 +1490,15 @@ namespace DifferentialThrustMod
                     SumThrusts = SumThrusts + (simE.measuredThrust * simulationfactor);
                 }
             }
+
+            if (ThrottleSteeringToggle)
+            {
+                if (input > 0) 
+                { SumMoments = SumMoments + ((1 + 1000) * input * throttleSteeringTorque); }
+                if (input < 0) { SumMoments = SumMoments + ((-1 + 1000) * -1 * input * throttleSteeringTorque); }
+                SumThrusts = SumThrusts + (Math.Abs(input) * throttleSteeringTorque);
+            }
+
             if (SumThrusts == 0) { return 0; }
             return SumMoments / SumThrusts - 1000;
         }
@@ -1530,6 +1598,22 @@ namespace DifferentialThrustMod
                 adjustmentSize = adjustmentSize * 1.5f;
                 if (adjustmentSize > 10) { adjustmentSize = 10f; }
                 //print("--up " + adjustmentSize); 
+            }
+        }
+
+        private float getVesselInput(int direction)
+        {
+            //setDirection
+            switch(direction)
+            {
+                case 0:
+                    return (vessel.ctrlState.pitch);
+                case 1:
+                    return (vessel.ctrlState.roll);
+                case 2:
+                    return (vessel.ctrlState.yaw);
+                default:
+                    return (0f);
             }
         }
 
