@@ -52,7 +52,7 @@ namespace DifferentialThrustMod
         public float StoredOengineAccelerationSpeed;
         public float StoredOengineDecelerationSpeed;
 
-        [KSPEvent(name = "transferToAllEngineOfType", isDefault = false, guiActive = true, guiName = "Center thrust: available")]
+        [KSPEvent(name = "cycleCenterThrustMode", isDefault = false, guiActive = true, guiName = "Center thrust: available")]
         public void CycleCenterThrustMode()
         {
             if (CenterThrustMode == "available")

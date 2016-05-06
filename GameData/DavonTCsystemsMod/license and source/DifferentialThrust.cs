@@ -29,7 +29,7 @@ namespace DifferentialThrustMod
 
         [KSPField(isPersistant = true, guiActive = false)]
         public int CenterThrustDirection = 0;
-        [KSPField(isPersistant = true, guiActive = false)]
+
         private int xax = 0;
         private int yay = 2;
         private bool xaxi = true;
@@ -49,7 +49,7 @@ namespace DifferentialThrustMod
         public bool ThrottleSteeringToggle = false;
         private float input0 = 0f;
         private float input1 = 0f;
-        private float throttleSteeringTorque = 0f;
+        private float throttleSteeringTorque = 10f;
 
         [KSPField(isPersistant = true, guiActive = false)]
         public string savedEngCon = "0";
@@ -913,7 +913,7 @@ namespace DifferentialThrustMod
 
             if (boolThrSte)
             {
-                GUILayout.Label("Torque:", GUILayout.Width(45));
+                GUILayout.Label("Torque:", GUILayout.Width(55));
 
                 GUILayout.BeginHorizontal();
                 strTorque = GUILayout.TextField(strTorque, 5, GUILayout.Width(50));
@@ -996,6 +996,9 @@ namespace DifferentialThrustMod
                         }
                     }
                 }
+
+                setDirection(CenterThrustDirection);
+
                 makeSimulatedEngineList();
             }
             else
@@ -1035,7 +1038,6 @@ namespace DifferentialThrustMod
             if (CenterThrustDirection != selDirGridInt)
             {
                 CenterThrustDirection = selDirGridInt;
-                setDirection(CenterThrustDirection);
                 closeGUIDconfig();
             }
             if (GUILayout.Button("X", GUILayout.Width(40)))
@@ -1071,38 +1073,38 @@ namespace DifferentialThrustMod
                 case 0:
                     xax = 0;
                     yay = 2;
-                    xaxi = true;
-                    yayi = false;
+                    xaxi = false;
+                    yayi = true;
                     break;
                 case 1:
                     xax = 0;
                     yay = 2;
-                    xaxi = false;
-                    yayi = true;
+                    xaxi = true;
+                    yayi = false;
                     break;
                 case 2:
                     xax = 0;
                     yay = 1;
-                    xaxi = true;
-                    yayi = false;
+                    xaxi = false;
+                    yayi = true;
                     break;
                 case 3:
                     xax = 0;
                     yay = 1;
-                    xaxi = false;
-                    yayi = true;
+                    xaxi = true;
+                    yayi = false;
                     break;
                 case 4:
                     xax = 1;
                     yay = 2;
-                    xaxi = false;
-                    yayi = true;
+                    xaxi = true;
+                    yayi = false;
                     break;
                 case 5:
                     xax = 1;
                     yay = 2;
-                    xaxi = true;
-                    yayi = false;
+                    xaxi = false;
+                    yayi = true;
                     break;
             }
         }
@@ -1379,6 +1381,9 @@ namespace DifferentialThrustMod
                 {
                     //print("c" + xax + " " + yay + " " + xaxi + " " + yayi);
                     simE.update(xax, xaxi, yay, yayi, CoM);
+                    //print("name" + simE.enginepart.name);
+                    //print("X" + simE.distanceX);
+                    //print("Y" + simE.distanceY);
                     //print("a" + xax + " " + yay + " " + xaxi + " " + yayi);
                 }
             }
@@ -1495,7 +1500,7 @@ namespace DifferentialThrustMod
             {
                 if (input > 0) 
                 { SumMoments = SumMoments + ((1 + 1000) * input * throttleSteeringTorque); }
-                if (input < 0) { SumMoments = SumMoments + ((-1 + 1000) * -1 * input * throttleSteeringTorque); }
+                if (input < 0) { SumMoments = SumMoments + ((-1 + 1000) * -input * throttleSteeringTorque); }
                 SumThrusts = SumThrusts + (Math.Abs(input) * throttleSteeringTorque);
             }
 

@@ -58,18 +58,14 @@ namespace DifferentialThrustMod
                 {
                     distance = distance + (enginepart.vessel.ReferenceTransform.InverseTransformPoint(tr.position)[xax] - CoM[xax]);
                 }
-                distanceX = distance / ModEng.thrustTransforms.Count() * (xaxi ? 1: -1);
-
-                //print(distanceX);
+                distanceX = (distance / ModEng.thrustTransforms.Count()) * (xaxi ? -1 : 1); 
 
                 distance = 0.0f;
                 foreach (Transform tr in ModEng.thrustTransforms)
                 {
                     distance = distance + (enginepart.vessel.ReferenceTransform.InverseTransformPoint(tr.position)[yay] - CoM[yay]);
                 }
-                distanceY = distance / ModEng.thrustTransforms.Count() * (yayi ? 1 : -1);
-
-                //print(distanceY);
+                distanceY = (distance / ModEng.thrustTransforms.Count()) * (yayi ? -1 : 1);
             }
             else
             {
@@ -86,14 +82,14 @@ namespace DifferentialThrustMod
                 {
                     distance = distance + (enginepart.vessel.ReferenceTransform.InverseTransformPoint(tr.position)[xax] - CoM[xax]);
                 }
-                distanceX = distance / ModEngFX.thrustTransforms.Count();
+                distanceX = (distance / ModEngFX.thrustTransforms.Count()) * (xaxi ? -1 : 1);
 
                 distance = 0.0f;
                 foreach (Transform tr in ModEngFX.thrustTransforms)
                 {
                     distance = distance + (enginepart.vessel.ReferenceTransform.InverseTransformPoint(tr.position)[yay] - CoM[yay]);
                 }
-                distanceY = distance / ModEngFX.thrustTransforms.Count();
+                distanceY = (distance / ModEngFX.thrustTransforms.Count()) * (yayi ? -1 : 1);
             }
         }
     }
