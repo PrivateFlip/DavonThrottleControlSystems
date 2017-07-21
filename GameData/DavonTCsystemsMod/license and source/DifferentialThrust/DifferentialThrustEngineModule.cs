@@ -229,7 +229,7 @@ namespace DifferentialThrustMod
             enginemoduletype = 0;
             foreach (PartModule pm in part.Modules)
             {
-                if (pm.ClassName == "MultiModeEngine")
+                if (pm is MultiModeEngine)
                 {
                     enginemoduletype = 2;
                     PartmoduleMultiModeEngine = (MultiModeEngine)pm;
@@ -256,7 +256,7 @@ namespace DifferentialThrustMod
             {
                 foreach (PartModule pm in part.Modules)
                 {
-                    if (pm.ClassName == "ModuleEngines")
+                    if (pm is ModuleEngines)
                     {
                         enginemoduletype = 0;
                         PartmoduleModuleEngines = (ModuleEngines)pm;
@@ -278,7 +278,7 @@ namespace DifferentialThrustMod
                         aim = PartmoduleModuleEngines.thrustPercentage;
 
                     }
-                    if (pm.ClassName == "ModuleEnginesFX")
+                    if (pm is ModuleEnginesFX)
                     {
                         enginemoduletype = 1;
                         PartmoduleModuleEnginesFX = (ModuleEnginesFX)pm;
@@ -311,7 +311,7 @@ namespace DifferentialThrustMod
         {
             foreach (PartModule pm in part.Modules)
             {
-                if (pm.ClassName == "ModuleEnginesFX")
+                if (pm is ModuleEnginesFX)
                 {
                     ModuleEnginesFX cModuleEnginesFX = (ModuleEnginesFX)pm;
                     if (cModuleEnginesFX.engineID == PartmoduleMultiModeEngine.mode)
@@ -332,7 +332,7 @@ namespace DifferentialThrustMod
                 {
                     foreach (PartModule pm in p.Modules)
                     {
-                        if (pm.ClassName == "DifferentialThrustEngineModule")
+                        if (pm is DifferentialThrustEngineModule)
                         {
                             DifferentialThrustEngineModule aDifferentialThrustEngineModule;
                             aDifferentialThrustEngineModule = p.Modules.OfType<DifferentialThrustEngineModule>().FirstOrDefault();
@@ -348,14 +348,14 @@ namespace DifferentialThrustMod
 
                                 foreach (PartModule pmt in p.Modules)
                                 {
-                                    if (pmt.ClassName == "ModuleEngines")
+                                    if (pmt is ModuleEngines)
                                     {
                                         ModuleEngines aModuleEngines;
                                         aModuleEngines = (ModuleEngines)pmt;
 
                                         aModuleEngines.thrustPercentage = PartmoduleModuleEngines.thrustPercentage;
                                     }
-                                    if (pmt.ClassName == "ModuleEnginesFX")
+                                    if (pmt is ModuleEnginesFX)
                                     {
                                         ModuleEnginesFX aModuleEnginesFX;
                                         aModuleEnginesFX = (ModuleEnginesFX)pmt;

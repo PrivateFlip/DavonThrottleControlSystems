@@ -1,0 +1,17 @@
+c:\KSP\ksp-win-0-22-0 mod\KSP_win\GameData\DavonTCsystemsMod\Plugins\DifferentialThrust.dll
+c:\users\flip\documents\visual studio 2012\Projects\DifferentialThrust\DifferentialThrust\obj\Release\DifferentialThrust.csprojResolveAssemblyReference.cache
+c:\users\flip\documents\visual studio 2012\Projects\DifferentialThrust\DifferentialThrust\obj\Release\DifferentialThrust.dll
+C:\KSP\ksp-win-0-22-0\KSP_win\GameData\DavonTCsystemsMod\Plugins\DifferentialThrust.dll
+C:\KSP\ksp-win-0-23-0 mod\KSP_win\GameData\DavonTCsystemsMod\Plugins\DifferentialThrust.dll
+C:\KSP\ksp mod\KSP_win\GameData\DavonTCsystemsMod\Plugins\DifferentialThrust.dll
+C:\KSP\ksp-mod-0-25-0\KSP_win\GameData\DavonTCsystemsMod\Plugins\DifferentialThrust.dll
+C:\KSP\ksp-mod-0-90-0\KSP_win\GameData\DavonTCsystemsMod\Plugins\DifferentialThrust.dll
+C:\KSP\ksp-mod-1\GameData\DavonTCsystemsMod\Plugins\DifferentialThrust.dll
+C:\KSP\ksp-mod-1-0-4\KSP_win\GameData\DavonTCsystemsMod\Plugins\DifferentialThrust.dll
+C:\KSP\ksp-mod-1-0-5\KSP_win\GameData\DavonTCsystemsMod\Plugins\DifferentialThrust.dll
+C:\KSP\ksp-mod-1-1-2\KSP_win\GameData\DavonTCsystemsMod\Plugins\DifferentialThrust.dll
+C:\KSP\ksp-mod-1-1-3\KSP_win\GameData\DavonTCsystemsMod\Plugins\DifferentialThrust.dll
+C:\KSP\ksp-mod-1-2\GameData\DavonTCsystemsMod\Plugins\DifferentialThrust.dll
+C:\KSP\ksp-mod-1-3\GameData\DavonTCsystemsMod\Plugins\DifferentialThrust.dll
+C:\Users\Flip\Documents\GitHub\DavonThrottleControlSystems\DifferentialThrust\DifferentialThrust\obj\Release\DifferentialThrust.csprojResolveAssemblyReference.cache
+C:\Users\Flip\Documents\GitHub\DavonThrottleControlSystems\DifferentialThrust\DifferentialThrust\obj\Release\DifferentialThrust.dll

@@ -60,7 +60,14 @@ namespace DifferentialThrustMod
         public double plannedReactivationTime = 0.0;
 
         //GUI variables
-        protected Rect windowPos = new Rect(50, 50, 200, 200);
+        private bool renderGUIM = false;
+        private bool renderGUIC = false;
+        private bool renderGUIT = false;
+        private bool renderGUID = false;
+        private bool renderGUIS = false;
+        private bool renderGUIJ = false;
+
+        protected Rect windowPosM = new Rect(50, 50, 200, 200);
         protected Rect windowPosC = new Rect(150, 150, 200, 120);
         protected Rect windowPosT = new Rect(300, 50, 160, 280);
         protected Rect windowPosD = new Rect(330, 60, 160, 240);
@@ -167,6 +174,44 @@ namespace DifferentialThrustMod
             ThrottleExecute();
         }
 
+        private void OnGUI()
+        {
+            if (Event.current.type == EventType.Repaint || Event.current.isMouse)
+            {
+                // preDraw code
+            }
+            drawGUI();
+        }
+
+        private void drawGUI()
+        {
+            // GUI rendering
+            if (renderGUIM)
+            {
+                drawGUIMconfig();
+            }
+            if (renderGUIC)
+            {
+                drawGUICconfig();
+            }
+            if (renderGUIT)
+            {
+                drawGUITconfig();
+            }
+            if (renderGUID)
+            {
+                drawGUIDconfig();
+            }
+            if (renderGUIS)
+            {
+                drawGUISconfig();
+            }
+            if (renderGUIJ)
+            {
+                drawGUIJconfig();
+            }
+        }
+
         //Scan vessel for engines and add partmodules to control engines
         public void Activate()
         {
@@ -178,7 +223,7 @@ namespace DifferentialThrustMod
             {
                 foreach (PartModule pm in p.Modules)
                 {
-                    if (pm.ClassName == "DifferentialThrust" && p.flightID != part.flightID)
+                    if (pm is DifferentialThrust && p.flightID != part.flightID)
                     {
                         DifferentialThrust aDifferentialThrust;
                         aDifferentialThrust = p.Modules.OfType<DifferentialThrust>().FirstOrDefault();
@@ -196,7 +241,7 @@ namespace DifferentialThrustMod
                 bool added = false;
                 foreach (PartModule pm in p.Modules)
                 {
-                    if (added == false && (pm.ClassName == "ModuleEngines" || pm.ClassName == "MultiModeEngine" || pm.ClassName == "ModuleEnginesFX"))
+                    if (added == false && (pm is ModuleEngines || pm is MultiModeEngine || pm is ModuleEnginesFX))
                     {
                         EngineList.Add(p);
                         added = true;
@@ -213,21 +258,21 @@ namespace DifferentialThrustMod
                 foreach (PartModule pm in p.Modules)
                 {
                     //check if already added
-                    if (pm.ClassName == "DifferentialThrustEngineModule")
+                    if (pm is DifferentialThrustEngineModule)
                     {
                         dontadd = true;
                         TCEngineList.Add((DifferentialThrustEngineModule)pm);
                     }
 
                     //check if SRB
-                    if (pm.ClassName == "ModuleEngines")
+                    if (pm is ModuleEngines)
                     {
                         ModuleEngines cModuleEngines;
                         cModuleEngines = p.Modules.OfType<ModuleEngines>().FirstOrDefault();
                         if (cModuleEngines.throttleLocked == false) { couldadd = true; };
                     }
                     //check if SRB
-                    if (pm.ClassName == "ModuleEnginesFX")
+                    if (pm is ModuleEnginesFX)
                     {
                         ModuleEnginesFX cModuleEnginesFX;
                         cModuleEnginesFX = p.Modules.OfType<ModuleEnginesFX>().FirstOrDefault();
@@ -237,12 +282,12 @@ namespace DifferentialThrustMod
 
                 if (dontadd == false && couldadd == true)
                 {
-                    p.AddModule("DifferentialThrustEngineModule");
+                    p.AddModule(typeof(DifferentialThrustEngineModule).Name);
                     //and add to list
                     foreach (PartModule pmt in p.Modules)
                     {
                         //check if already added
-                        if (pmt.ClassName == "DifferentialThrustEngineModule")
+                        if (pmt is DifferentialThrustEngineModule)
                         {
                             TCEngineList.Add((DifferentialThrustEngineModule)pmt);
                         }
@@ -275,7 +320,7 @@ namespace DifferentialThrustMod
             {
                 foreach (PartModule pm in p.Modules)
                 {
-                    if (pm.ClassName == "DifferentialThrustEngineModule")
+                    if (pm is DifferentialThrustEngineModule)
                     {
                         ModDifList.Add(p);
                     }
@@ -392,7 +437,7 @@ namespace DifferentialThrustMod
             {
                 foreach (PartModule pm in p.Modules)
                 {
-                    if (pm.ClassName == "ModuleCommand")
+                    if (pm is ModuleCommand)
                     {
                         present = true;
                     }
@@ -435,6 +480,12 @@ namespace DifferentialThrustMod
         /// <summary>
         /// Module config window
         /// </summary>
+        [KSPEvent(name = "Moduleconfig", isDefault = false, guiActive = true, guiName = "TC systems")]
+        public void Moduleconfig()
+        {
+            if (!isActive) { Activate(); }
+            openGUIMconfig();
+        }
 
         private void WindowGUIMconfig(int windowID)
         {
@@ -504,34 +555,33 @@ namespace DifferentialThrustMod
             GUILayout.EndHorizontal();
 
             GUILayout.EndVertical();
-
         }
-
 
         private void drawGUIMconfig()
         {
             GUI.skin = HighLogic.Skin;
-            windowPos = GUILayout.Window(14132, windowPos, WindowGUIMconfig, "Module");
+            windowPosM = GUILayout.Window(14132, windowPosM, WindowGUIMconfig, "Module");
         }
 
-
-        [KSPEvent(name = "Moduleconfig", isDefault = false, guiActive = true, guiName = "TC systems")]
-        public void Moduleconfig()
+        public void openGUIMconfig()
         {
-            if (!isActive) { Activate(); }
-            RenderingManager.RemoveFromPostDrawQueue(45115, new Callback(drawGUIMconfig));
-            RenderingManager.AddToPostDrawQueue(45115, new Callback(drawGUIMconfig));
+            renderGUIM = true;
         }
 
         public void closeGUIMconfig()
         {
-            RenderingManager.RemoveFromPostDrawQueue(45115, new Callback(drawGUIMconfig));
+            renderGUIM = false;
         }
 
 
         /// <summary>
         /// Module throttle
         /// </summary>
+
+        public void Throttleconfig()
+        {
+            openGUITconfig();
+        }
 
         private void WindowGUITconfig(int windowID)
         {
@@ -568,28 +618,30 @@ namespace DifferentialThrustMod
 
         }
 
-
         private void drawGUITconfig()
         {
             GUI.skin = HighLogic.Skin;
             windowPosT = GUILayout.Window(4130, windowPosT, WindowGUITconfig, "Throttle 1-4");
         }
 
-        public void Throttleconfig()
+        public void openGUITconfig()
         {
-            RenderingManager.AddToPostDrawQueue(5110, new Callback(drawGUITconfig));
+            renderGUIT = true;
         }
 
         public void closeGUITconfig()
         {
-            RenderingManager.RemoveFromPostDrawQueue(5110, new Callback(drawGUITconfig));
+            renderGUIT = false;
         }
 
 
         /// <summary>
         /// Module throttle controls
         /// </summary>
-
+        public void joystickconfig()
+        {
+            openGUIJconfig();
+        }
 
         private void WindowGUIJconfig(int windowID)
         {
@@ -721,14 +773,14 @@ namespace DifferentialThrustMod
             windowPosJ = GUILayout.Window(23132, windowPosJ, WindowGUIJconfig, "Controls");
         }
 
-        public void joystickconfig()
+        public void openGUIJconfig()
         {
-            RenderingManager.AddToPostDrawQueue(23115, new Callback(drawGUIJconfig));
+            renderGUIJ = true;
         }
 
         public void closeGUIJconfig()
         {
-            RenderingManager.RemoveFromPostDrawQueue(23115, new Callback(drawGUIJconfig));
+            renderGUIJ = false;
         }
 
 
@@ -737,6 +789,12 @@ namespace DifferentialThrustMod
         /// <summary>
         /// Profile Window
         /// </summary>
+        public void ProfileWindow()
+        {
+            GamePath = System.IO.Directory.GetParent(Application.dataPath);
+            updateProfilesList();
+            openGUISconfig();
+        }
 
         private void WindowGUISconfig(int windowID)
         {
@@ -761,14 +819,14 @@ namespace DifferentialThrustMod
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Save Profile", GUILayout.Width(80)))
+            if (GUILayout.Button("Save", GUILayout.Width(80)))
             {
                 saveprofile(StrProfName);
                 updateProfilesList();
                 closeGUISconfig();
             }
 
-            if (GUILayout.Button("Load Profile", GUILayout.Width(80)))
+            if (GUILayout.Button("Load", GUILayout.Width(80)))
             {
                 loadprofile(StrProfName);
                 updateProfilesList();
@@ -854,22 +912,23 @@ namespace DifferentialThrustMod
             windowPosS = GUILayout.Window(14231, windowPosS, WindowGUISconfig, "Profile");
         }
 
-        public void ProfileWindow()
+        public void openGUISconfig()
         {
-            GamePath = System.IO.Directory.GetParent(Application.dataPath);
-            updateProfilesList();
-            RenderingManager.AddToPostDrawQueue(45214, new Callback(drawGUISconfig));
+            renderGUIS = true;
         }
 
         public void closeGUISconfig()
         {
-            RenderingManager.RemoveFromPostDrawQueue(45214, new Callback(drawGUISconfig));
+            renderGUIS = false;
         }
 
         /// <summary>
         /// Center thrust config window
         /// </summary>
-
+        public void CenterThrust()
+        {
+            openGUICconfig();
+        }
 
         private void WindowGUICconfig(int windowID)
         {
@@ -944,14 +1003,14 @@ namespace DifferentialThrustMod
             windowPosC = GUILayout.Window(14131, windowPosC, WindowGUICconfig, "Center Thrust");
         }
 
-        public void CenterThrust()
+        public void openGUICconfig()
         {
-            RenderingManager.AddToPostDrawQueue(45114, new Callback(drawGUICconfig));
+            renderGUIC = true;
         }
 
         public void closeGUICconfig()
         {
-            RenderingManager.RemoveFromPostDrawQueue(45114, new Callback(drawGUICconfig));
+            renderGUIC = false;
         }
 
 
@@ -1016,7 +1075,10 @@ namespace DifferentialThrustMod
         /// <summary>
         /// Direction config window
         /// </summary>
-
+        public void Directionwindow()
+        {
+            openGUIDconfig();
+        }
 
         private void WindowGUIDconfig(int windowID)
         {
@@ -1054,16 +1116,14 @@ namespace DifferentialThrustMod
             windowPosD = GUILayout.Window(2131, windowPosD, WindowGUIDconfig, "Direction");
         }
 
-        public void Directionwindow()
+        public void openGUIDconfig()
         {
-            RenderingManager.AddToPostDrawQueue(2114, new Callback(drawGUIDconfig));
+            renderGUID = true;
         }
-
-
 
         public void closeGUIDconfig()
         {
-            RenderingManager.RemoveFromPostDrawQueue(2114, new Callback(drawGUIDconfig));
+            renderGUID = false;
         }
 
         public void setDirection(int direction)
@@ -1317,7 +1377,7 @@ namespace DifferentialThrustMod
         //run each physics cycle
         public void centerThrustInSim()
         {
-            CoM = vessel.ReferenceTransform.InverseTransformPoint(vessel.CoM + vessel.rb_velocity * Time.deltaTime + 0.5 * vessel.acceleration * Time.deltaTime * Time.deltaTime);
+            CoM = vessel.ReferenceTransform.InverseTransformPoint(vessel.CoM);
 
             updateEngineList();
 
@@ -1336,18 +1396,18 @@ namespace DifferentialThrustMod
                 foreach (PartModule pm in p.Modules)
                 {
 
-                    if (partadded == false && (pm.ClassName == "ModuleEngines" || pm.ClassName == "ModuleEnginesFX"))
+                    if (partadded == false && (pm is ModuleEngines || pm is ModuleEnginesFX))
                     {
                         simulatedEngine engine = new simulatedEngine();
                         engine.enginepart = p;
 
-                        if (pm.ClassName == "ModuleEngines")
+                        if (pm is ModuleEngines)
                         {
                             engine.enginemoduletype = 0;
                             engine.ModEng = (ModuleEngines)pm;
 
                         }
-                        else if (pm.ClassName == "ModuleEnginesFX")
+                        else if (pm is ModuleEnginesFX)
                         {
                             engine.enginemoduletype = 1;
                             engine.ModEngFX = (ModuleEnginesFX)pm;
@@ -1355,7 +1415,7 @@ namespace DifferentialThrustMod
 
                         foreach (PartModule pmt in p.Modules)
                         {
-                            if (pmt.ClassName == "DifferentialThrustEngineModule")
+                            if (pmt is DifferentialThrustEngineModule)
                             {
                                 engine.hasEngineModule = true;
                                 engine.DifMod = (DifferentialThrustEngineModule)pmt;

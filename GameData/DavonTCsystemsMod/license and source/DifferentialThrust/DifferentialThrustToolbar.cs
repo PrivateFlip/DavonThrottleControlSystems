@@ -5,9 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using UnityEngine;
 using System.Reflection;
-
+using UnityEngine;
+using KSP.UI.Screens;
 
 namespace DifferentialThrustMod
 {
@@ -22,12 +22,27 @@ namespace DifferentialThrustMod
 
         public void Awake()
         {
-            RenderingManager.AddToPostDrawQueue(643, OnDraw);
+            //nothing
         }
 
         void onDestroy()
         {
             if (toolBarButton != null) { removeToolbarButton(); }
+        }
+
+        private void OnGUI()
+        {
+            if (Event.current.type == EventType.Repaint || Event.current.isMouse)
+            {
+                // preDraw code
+            }
+            drawGUI();
+        }
+
+        private void drawGUI()
+        {
+            //Toolbar button
+            updateToolBar();
         }
 
         private void OnDraw()
@@ -87,7 +102,7 @@ namespace DifferentialThrustMod
             {
                 foreach (PartModule pm in p.Modules)
                 {
-                    if (pm.ClassName == "DifferentialThrust")
+                    if (pm is DifferentialThrust)
                     {
                         return (true);
                     }
@@ -102,7 +117,7 @@ namespace DifferentialThrustMod
             {
                 foreach (PartModule pm in p.Modules)
                 {
-                    if (pm.ClassName == "DifferentialThrust")
+                    if (pm is DifferentialThrust)
                     {
                         DifferentialThrust aDifferentialThrust;
                         aDifferentialThrust = p.Modules.OfType<DifferentialThrust>().FirstOrDefault();
@@ -119,7 +134,7 @@ namespace DifferentialThrustMod
             {
                 foreach (PartModule pm in p.Modules)
                 {
-                    if (pm.ClassName == "DifferentialThrust")
+                    if (pm is DifferentialThrust)
                     {
                         DifferentialThrust aDifferentialThrust;
                         aDifferentialThrust = p.Modules.OfType<DifferentialThrust>().FirstOrDefault();
@@ -136,7 +151,7 @@ namespace DifferentialThrustMod
             {
                 foreach (PartModule pm in p.Modules)
                 {
-                    if (pm.ClassName == "DifferentialThrust")
+                    if (pm is DifferentialThrust)
                     {
                         DifferentialThrust aDifferentialThrust;
                         aDifferentialThrust = p.Modules.OfType<DifferentialThrust>().FirstOrDefault();
